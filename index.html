@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicker Game</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        #score { font-size: 24px; margin: 20px; }
+        button { padding: 15px; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <h1>Telegram Clicker</h1>
+    <p id="score">Clicks: 0</p>
+    <button onclick="clickButton()">Click Me!</button>
+    <div id="leaderboard"></div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let playerId = tg.initDataUnsafe?.user?.id || "guest_" + Math.random();
+        let socket = new WebSocket("wss://your-server-url"); // Укажи свой сервер
+
+        socket.onopen = function () {
+            console.log("Connected to server");
+            socket.send(JSON.stringify({ type: "join", playerId }));
+        };
+
+        socket.onmessage = function (event) {
+            let data = JSON.parse(event.data);
+            if (data.type === "update") {
+                document.getElementById("score").innerText = "Clicks: " + (data.players[playerId] || 0);
+                updateLeaderboard(data.players);
+            }
+        };
+
+        function clickButton() {
+            socket.send(JSON.stringify({ type: "click", playerId }));
+        }
+
+        function updateLeaderboard(players) {
+            const leaderboard = document.getElementById("leaderboard");
+            leaderboard.innerHTML = "<h2>Leaderboard</h2>";
+            const sortedPlayers = Object.entries(players).sort((a, b) => b[1] - a[1]);
+            sortedPlayers.forEach(([id, score]) => {
+                const scoreItem = document.createElement("div");
+                scoreItem.textContent = `${id}: ${score}`;
+                leaderboard.appendChild(scoreItem);
+            });
+        }
+    </script>
+</body>
+</html>
